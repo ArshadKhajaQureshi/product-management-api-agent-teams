@@ -312,12 +312,16 @@ export const updateManyStatus = (ids, status) => {
  * @throws {ApiError} 409 if any sku is duplicated within the batch or already exists in the store.
  */
 export const createMany = (items) => {
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new ApiError(422, 'products is required and must be a non-empty array');
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+    throw new ApiError(422, 'products is required and must be an array of 1 to 100 items');
   }
 
   const seenSkus = new Set();
   const created = items.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new ApiError(422, 'each item in products must be an object');
+    }
+
     validateCreate(item);
 
     const { sku } = item;

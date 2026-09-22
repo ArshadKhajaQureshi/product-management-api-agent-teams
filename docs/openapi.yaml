@@ -120,6 +120,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /products/bulk:
+    post:
+      summary: Atomically create a batch of products
+      operationId: bulkCreateProducts
+      tags: [Products]
+      description: >-
+        Creates 1 to 100 products in a single request. The batch is applied
+        atomically: every item is validated first, and if any item fails
+        validation or has a sku that is duplicated within the batch or
+        already exists in the store, the entire batch is rejected and no
+        products are created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateInput'
+      responses:
+        '201':
+          description: All products in the batch were created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BulkCreateResult'
+        '400':
+          description: products is missing, is not an array, or does not contain between 1 and 100 items.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: One or more items in the batch failed field validation. No products were created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: >-
+            A sku is duplicated within the batch, or a sku in the batch
+            already exists in the store. No products were created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /products/bulk-status:
     patch:
       summary: Apply a status change to a batch of active products atomically
@@ -458,6 +508,57 @@ components:
           description: Non-negative integer.
         status:
           $ref: '#/components/schemas/Status'
+
+    BulkCreateInput:
+      type: object
+      description: Fields accepted when creating a batch of products via POST /products/bulk.
+      example:
+        products:
+          - name: Wireless Mouse
+            sku: WM-1001
+            category: electronics
+            price: 19.99
+            stock: 50
+          - name: Mechanical Keyboard
+            sku: MK-2002
+            category: electronics
+            price: 89.99
+            stock: 20
+      required:
+        - products
+      properties:
+        products:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            allOf:
+              - $ref: '#/components/schemas/ProductInput'
+              - type: object
+                properties:
+                  sku:
+                    type: string
+                    pattern: '^[A-Z0-9-]{3,20}$'
+                    description: Must match /^[A-Z0-9-]{3,20}$/ (stricter than POST /products' sku field).
+          description: >-
+            1 to 100 products to create. Each sku must be unique within the
+            batch and must not already exist in the store.
+
+    BulkCreateResult:
+      type: object
+      description: Result of a successful POST /products/bulk request.
+      required:
+        - created
+        - products
+      properties:
+        created:
+          type: integer
+          description: Number of products created (equal to the length of products).
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+          description: The newly created products, in the same order as the request's products array.
 
     BulkStatusUpdate:
       type: object
