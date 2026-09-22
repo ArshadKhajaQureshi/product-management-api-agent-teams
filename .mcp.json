@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_PAT"
+      }
+    },
+    "product-api": {
+      "type": "http",
+      "url": "https://product-management-api-maxc.onrender.com/mcp"
+    }
+  }
+}
